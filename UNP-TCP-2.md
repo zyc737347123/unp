@@ -84,7 +84,7 @@ D-SACK的規則如下：
 
 ### 2.2 滑动窗口
 
-我们都知道，**TCP必需要解决的可靠传输以及包乱序（reordering）的问题**，所以，TCP必需要知道网络实际的数据处理带宽或是数据处理速度，这样才不会引起网络拥塞，导致丢包，所以TCP需要做网络流量控制。TCP引入了一些技术和设计来做网络流控，Sliding Window(滑动窗口)是其中一个技术。前面我们说过，**TCP头里有一个字段叫Window，又叫Advertised-Window(通告窗口)，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据**。**于是发送端就可以根据这个接收端的处理能力来发送数据，而不会导致接收端处理不过来**
+我们都知道，**TCP必需要解决的可靠传输以及包乱序（reordering）的问题**，所以，**TCP必需要知道网络实际的数据处理带宽或是数据处理速度，这样才不会引起网络拥塞，导致丢包，所以TCP需要做网络流量控制**。TCP引入了一些技术和设计来做网络流控，Sliding Window(滑动窗口)是其中一个技术。前面我们说过，**TCP头里有一个字段叫Window，又叫Advertised-Window(通告窗口)，这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据**。**于是发送端就可以根据这个接收端的处理能力来发送数据，而不会导致接收端处理不过来**
 
 下面我们来看一下发送方的滑动窗口示意图：
 ![](https://coolshell.cn/wp-content/uploads/2014/05/tcpswwindows.png)
@@ -141,10 +141,60 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 
 ### 2.3 拥塞处理
 
-上面我们知道了，TCP通过Sliding Window来做流控（Flow Control），但是TCP觉得这还不够，因为Sliding Window需要依赖于连接的发送端和接收端，其并不知道网络中间发生了什么。TCP的设计者觉得，一个伟大而牛逼的协议仅仅做到流控并不够，因为流控只是网络模型4层以上的事，TCP的还应该更聪明地知道整个网络上的事
+上面我们知道了，TCP通过Sliding Window来做流控（Flow Control），但是TCP觉得这还不够，因为**Sliding Window需要依赖于连接的发送端和接收端，其并不知道网络中间发生了什么**。TCP的设计者觉得，一个伟大而牛逼的协议仅仅做到流控并不够，因为流控只是网络模型4层以上的事，TCP的还应该更聪明地知道整个网络上的事。
+
+具体一点，我们知道TCP通过一个timer采样了RTT并计算RTO，但是，**如果网络上的延时突然增加，那么，TCP对这个事做出的应对只有重传数据，但是，重传会导致网络的负担更重，于是会导致更大的延迟以及更多的丢包，于是，这个情况就会进入恶性循环被不断地放大。试想一下，如果一个网络内有成千上万的TCP连接都这么行事，那么马上就会形成“网络风暴”，TCP这个协议就会拖垮整个网络，**这是一个灾难。
+
+所以，TCP不能忽略网络上发生的事情，而无脑地一个劲地重发数据，对网络造成更大的伤害。对此TCP的设计理念是：**TCP不是一个自私的协议，当拥塞发生的时候，要做自我牺牲。就像交通阻塞一样，每个车都应该把路让出来，而不要再去抢路了。**
+
+关于拥塞控制的论文请参看《[Congestion Avoidance and Control](http://ee.lbl.gov/papers/congavoid.pdf)》(PDF)
+
+拥塞控制主要是四个算法：**1）慢启动**，**2）拥塞避免**，**3）拥塞发生**，**4）快速恢复**。这四个算法不是一天都搞出来的，这个四算法的发展经历了很多时间，到今天都还在优化中
+
+- 1988年，TCP-Tahoe 提出了1）慢启动，2）拥塞避免，3）拥塞发生时的快速重传
+- 1990年，TCP Reno 在Tahoe的基础上增加了4）快速恢复
+
+#### 慢热启动算法 – Slow Start
+首先，我们来看一下TCP的慢热启动。慢启动的意思是，刚刚加入网络的连接，一点一点地提速，不要一上来就像那些特权车一样霸道地把路占满。新同学上高速还是要慢一点，不要把已经在高速上的秩序给搞乱了。
+
+慢启动的算法如下(cwnd全称Congestion Window)：
+
+1. 连接建好的开始先初始化cwnd = 1，表明可以传一个MSS(Max Segment Size)大小的数据。
+
+2. 每当收到一个ACK，cwnd++; 呈线性上升
+
+3. 每当过了一个RTT，cwnd = cwnd*2; 呈指数让升
+
+4. 还有一个ssthresh（slow start threshold），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法”
+
+所以，我们可以看到，如果网速很快的话，ACK也会返回得快，RTT也会短，那么，这个慢启动就一点也不慢。下图说明了这个过程
+
+![](https://coolshell.cn/wp-content/uploads/2014/05/tcp.slow_.start_.jpg)
+
+这里需要提一下的是一篇Google的论文《[An Argument for Increasing TCP’s Initial Congestion Window](http://static.googleusercontent.com/media/research.google.com/zh-CN//pubs/archive/36640.pdf)》Linux 3.0后采用了这篇论文的建议——把cwnd 初始化成了 10个MSS。而Linux 3.0以前，比如2.6，Linux采用了[RFC3390](http://www.rfc-editor.org/rfc/rfc3390.txt)，cwnd是跟MSS的值来变的，如果MSS< 1095，则cwnd = 4；如果MSS>2190，则cwnd=2；其它情况下，则是3。
+
+#### 拥塞避免算法 – Congestion Avoidance
+
+#### 拥塞状态时的算法
+
+#### 快速恢复算法 – Fast Recovery
+
+### 2.4 拥堵窗口和滑动窗口
+
+滑动窗口（sliding window）是接收方的流量控制。
+拥塞控制（congestion control）是发送方的流量控制
+
+滑动窗口和拥塞窗口是在解决两个正交的问题，只不过方法上都是在调整主机发送数据包的速率。
+
+滑动窗口是解决Flow Control的问题，就是如果接收端和发送端对数据包的处理速度不同，如何让双方达成一致。
+
+而拥塞窗口是解决多主机之间共享网络时出现的拥塞问题的一个修正。客观来说网络信道带宽不可能允许所有主机同时全速通信，所以如果全部主机都全速发送数据包，导致网络流量超过可用带宽，那么由于TCP的设计数据包会大量丢失，于是由于重传机制的触发会进一步加剧拥塞，潜在的导致网络不可用
+
+[What is CWND and RWND?](https://blog.stackpath.com/glossary-cwnd-and-rwnd/)
+[既然有了滑动窗口，为什么还要有等同于滑动窗口的拥塞窗口？](https://www.zhihu.com/question/264518499)
+[流量控制与拥塞控制的区别。为什么要把流量控制与拥塞控制分为两个名词？](https://www.zhihu.com/question/38749788)
 
 ## 参考文献
 
 - [TCP 的那些事儿-上](https://coolshell.cn/articles/11564.html)
 - [TCP 的那些事儿-下](https://coolshell.cn/articles/11609.html)
-
