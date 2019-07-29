@@ -117,4 +117,9 @@ TCP 是面向字节流的，但传送的数据单元却是报文段：
    仅在 URG = 1 时才有意义，它指出本报文段中的紧急数据的字节数。
    当 URG = 1 时，发送方 TCP 就把紧急数据插入到本报文段数据的**最前面**，而在紧急数据后面的数据仍是普通数据。
    因此，紧急指针指出了紧急数据的末尾在报文段中的位置
+   
+## 参考文献
+
+- [理解 TCP 和 UDP](https://jerryc8080.gitbooks.io/understand-tcp-and-udp/content/chapter1.html)
+- [TCP 序列號 (Sequence Number, SEQ)](https://notfalse.net/26/tcp-seq)
 

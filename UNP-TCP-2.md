@@ -134,9 +134,17 @@ Silly Window Syndrome翻译成中文就是“糊涂窗口综合症”。正如�
 另外，Nagle算法默认是打开的，所以，对于一些需要小包场景的程序——**比如像telnet或ssh这样的交互性比较强的程序，你需要关闭这个算法**。你可以在Socket设置TCP_NODELAY选项来关闭这个算法（关闭Nagle算法没有全局参数，需要根据每个应用自己的特点来关闭）
 
 ```c
-`setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (``char` `*)&value,``sizeof``(``int``));`
+setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 ```
 
 另外，网上有些文章说TCP_CORK的socket option也是关闭Nagle算法，这不对。**TCP_CORK其实是更新激进的Nagle算法，完全禁止小包发送，而Nagle算法没有禁止小包发送，只是禁止了大量的小包发送**。最好不要两个选项都设置。
 
 ### 2.3 拥塞处理
+
+上面我们知道了，TCP通过Sliding Window来做流控（Flow Control），但是TCP觉得这还不够，因为Sliding Window需要依赖于连接的发送端和接收端，其并不知道网络中间发生了什么。TCP的设计者觉得，一个伟大而牛逼的协议仅仅做到流控并不够，因为流控只是网络模型4层以上的事，TCP的还应该更聪明地知道整个网络上的事
+
+## 参考文献
+
+- [TCP 的那些事儿-上](https://coolshell.cn/articles/11564.html)
+- [TCP 的那些事儿-下](https://coolshell.cn/articles/11609.html)
+

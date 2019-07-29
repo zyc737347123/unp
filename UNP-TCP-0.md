@@ -170,3 +170,14 @@ TCP 的连接的拆除需要发送四个包，因此称为四次挥手(Four-way 
    2. 第二次挥手丢包，由于服务器第二次握手不会重发，所以即使丢包也不管，在服务端调用close()后会直接向对端发送FIN，此时客户端执行”同时关闭“的流程，进入TIME_WAIT状态，等待2MSL时间后关闭。在客户端进入TIME_WAIT之后，服务端由于发送FIN没有得到ACK，会重发FIN给客户端，如果被客户端TIME_WAIT收到并发送LAST-ACK，则流程正常结束；如果服务端反复重发FIN没有响应，那么服务端超时关闭（这种就是第四次挥手丢包的情况）
    3. 第三次挥手丢包，服务器会持续等待在LAST_ACK状态，而客户端会持续等待在FIN_WAIT2状态，最后双方超时关闭
    4. 第四次挥手丢包，客户端进入TIME_WAIT状态，等待2MSL，服务器由于收不到LAST-ACK则进行重发，如果多次重发失败，则服务端连接超时关闭
+
+## 参考文献
+
+- UNP第三版
+- [笔试面试知识整理](https://hit-alibaba.github.io/interview/)
+- [tcp十一种状态及问题处理方法](https://blog.csdn.net/bzfys/article/details/73733917)
+- [TCP为什么需要3次握手与4次挥手](https://blog.csdn.net/xifeijian/article/details/12777187)
+- [几种TCP连接中出现RST的情况](https://my.oschina.net/costaxu/blog/127394)
+- [TCP/IP协议中backlog参数](https://www.cnblogs.com/Orgliny/p/5780796.html)
+- [TCP协议RST：RST介绍、什么时候发送RST包](https://blog.csdn.net/guowenyan001/article/details/11766929)
+
