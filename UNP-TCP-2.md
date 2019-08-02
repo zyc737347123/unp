@@ -117,7 +117,7 @@ D-SACK的規則如下：
 
 #### Silly Window Syndrome
 
-Silly Window Syndrome翻译成中文就是“糊涂窗口综合症”。正如你上面看到的一样，如果我们的接收方太忙了，来不及取走Receive Windows里的数据，那么，就会导致发送方越来越小。到最后，如果接收方腾出几个字节并告诉发送方现在有几个字节的window，而我们的发送方会义无反顾地发送这几个字节。
+[Silly Window Syndrome](https://wiki.kfd.me/wiki/%E7%B3%8A%E6%B6%82%E7%AA%97%E5%8F%A3%E7%BB%BC%E5%90%88%E7%97%87)翻译成中文就是“糊涂窗口综合症”。正如你上面看到的一样，如果我们的接收方太忙了，来不及取走Receive Windows里的数据，那么，就会导致发送方越来越小。到最后，如果接收方腾出几个字节并告诉发送方现在有几个字节的window，而我们的发送方会义无反顾地发送这几个字节。
 
 要知道，我们的TCP+IP头有40个字节，为了几个字节，要达上这么大的开销，这太不经济了。
 
@@ -129,7 +129,21 @@ Silly Window Syndrome翻译成中文就是“糊涂窗口综合症”。正如�
 
 - 如果这个问题是由Receiver端引起的，那么就会使用 David D Clark’s 方案。在receiver端，如果收到的数据导致window size小于某个值，可以直接ack(0)回sender，这样就把window给关闭了，也阻止了sender再发数据过来，等到receiver端处理了一些数据后windows size 大于等于了MSS，或者，receiver buffer有一半为空，就可以把window打开让send 发送数据过来（会不会导致Zero Window，进而导致服务端主动关闭连接？）
 
-- 如果这个问题是由Sender端引起的，那么就会使用著名的 [Nagle’s algorithm](http://en.wikipedia.org/wiki/Nagle's_algorithm)。这个算法的思路也是**延时处理**，他有两个主要的条件：1）要等到 Window Size>=MSS 或是 Data Size >=MSS，2）收到之前发送数据的ack回包，他才会发数据，否则就是在攒数据。
+- 如果这个问题是由Sender端引起的，那么就会使用著名的 [Nagle’s algorithm](http://en.wikipedia.org/wiki/Nagle's_algorithm)。这个算法的思路也是**延时处理**，算法伪代码如下：
+
+```
+  if there is new data to send
+    if the window size >= MSS and available data is >= MSS
+      send complete MSS segment now
+    else
+      if there is unconfirmed data still in the pipe
+        enqueue data in the buffer until an acknowledge is received
+      else
+        send data immediately
+      end if
+    end if
+  end if
+```
 
 另外，Nagle算法默认是打开的，所以，对于一些需要小包场景的程序——**比如像telnet或ssh这样的交互性比较强的程序，你需要关闭这个算法**。你可以在Socket设置TCP_NODELAY选项来关闭这个算法（关闭Nagle算法没有全局参数，需要根据每个应用自己的特点来关闭）
 
@@ -137,7 +151,7 @@ Silly Window Syndrome翻译成中文就是“糊涂窗口综合症”。正如�
 setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 ```
 
-另外，网上有些文章说TCP_CORK的socket option也是关闭Nagle算法，这不对。**TCP_CORK其实是更新激进的Nagle算法，完全禁止小包发送，而Nagle算法没有禁止小包发送，只是禁止了大量的小包发送**。最好不要两个选项都设置。
+另外，网上有些文章说TCP_CORK的socket option也是关闭Nagle算法，这不对。**TCP_CORK其实是更激进的提供网络利用率的算法，完全禁止小包发送，而Nagle算法没有禁止小包发送，只是禁止了大量的小包发送（只要小包得到ACK，Nagle就可以继续发送小包）**。最好不要两个选项都设置。[更多关于糊涂窗口综合症的解释](https://www.cnblogs.com/zhaoyl/archive/2012/09/20/2695799.html)
 
 ### 2.3 拥塞处理
 
@@ -155,7 +169,7 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 - 1990年，TCP Reno 在Tahoe的基础上增加了4）快速恢复
 
 #### 慢热启动算法 – Slow Start
-首先，我们来看一下TCP的慢热启动。慢启动的意思是，刚刚加入网络的连接，一点一点地提速，不要一上来就像那些特权车一样霸道地把路占满。新同学上高速还是要慢一点，不要把已经在高速上的秩序给搞乱了。
+首先，我们来看一下TCP的慢热启动。慢启动的意思是，刚刚加入网络的连接，一点一点地提速，不要一上来就像那些特权车一样霸道地把路占满。新同学上高速还是要慢一点，不要把高速上已有的秩序给搞乱了。
 
 慢启动的算法如下(**cwnd**全称**Congestion Window**)：
 
@@ -165,7 +179,7 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 
 3. 每当过了一个RTT，cwnd = cwnd*2; 呈指数让升
 
-4. 还有一个ssthresh（slow start threshold），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法”
+4. 还有一个ssthresh（**slow start threshold**），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法”
 
 所以，我们可以看到，如果网速很快的话，ACK也会返回得快，RTT也会短，那么，这个慢启动就一点也不慢。下图说明了这个过程
 
@@ -175,7 +189,7 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 
 #### 拥塞避免算法 – Congestion Avoidance
 
-前面说过，还有一个ssthresh（slow start threshold），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法”。一般来说ssthresh的值是65535，单位是字节，当cwnd达到这个值时后，算法如下：
+前面说过，还有一个ssthresh（**slow start threshold**），是一个上限，当cwnd >= ssthresh时，就会进入“拥塞避免算法”。**一般来说ssthresh的值是65535，单位是字节**，当cwnd达到这个值时后，算法如下：
 
 1. 收到一个ACK时，cwnd = cwnd + 1/cwnd
 
@@ -192,20 +206,20 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 
 1. 等到RTO超时，重传数据包。TCP认为这种情况太糟糕，反应也很强烈。
 
-- - sshthresh =  cwnd /2
+  - sshthresh =  cwnd /2
   - cwnd 重置为 1
   - 进入慢启动过程
 
 2. Fast Retransmit算法，也就是在收到3个duplicate ACK时就开启重传，而不用等到RTO超时。
 
-- - TCP Tahoe的实现和RTO超时一样。
+  - TCP Tahoe的实现和RTO超时一样。
 
-- - TCP Reno的实现是：
+  - TCP Reno的实现是：
     - cwnd = cwnd /2
     - sshthresh = cwnd
     - 进入快速恢复算法——Fast Recovery
 
-上面我们可以看到RTO超时后，sshthresh会变成cwnd的一半，这意味着，如果cwnd<=sshthresh时出现的丢包，那么TCP的sshthresh就会减了一半，然后等cwnd又很快地以指数级增涨爬到这个地方时，就会成慢慢的线性增涨。我们可以看到，TCP是怎么通过这种强烈地震荡快速而小心地找到网络流量的平衡点
+上面我们可以看到RTO超时后，sshthresh会变成cwnd的一半，这意味着，如果cwnd<=sshthresh时出现丢包，那么TCP的sshthresh就会减了一半，然后cwnd又很快地以指数级增涨爬到这个地方时，就会成慢慢的线性增涨。我们可以看到，TCP是怎么通过这种强烈地震荡快速而小心地找到网络流量的平衡点
 
 #### 快速恢复算法 – Fast Recovery
 
@@ -242,4 +256,5 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 - [TCP 的那些事儿-下](https://coolshell.cn/articles/11609.html)
 - [What is CWND and RWND?](https://blog.stackpath.com/glossary-cwnd-and-rwnd/)
 - [TCP快速重传与快速恢复原理分析](https://blog.csdn.net/zhangskd/article/details/7174682)
+- [TCP重点系列之拥塞状态机](https://allen-kevin.github.io/2017/04/19/TCP%E9%87%8D%E7%82%B9%E7%B3%BB%E5%88%97%E4%B9%8B%E6%8B%A5%E5%A1%9E%E7%8A%B6%E6%80%81%E6%9C%BA/)
 
