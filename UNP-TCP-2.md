@@ -235,6 +235,13 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 - 如果再收到 duplicated Acks，那么cwnd = cwnd +1
 - 如果收到了新的Ack，那么，cwnd = sshthresh ，然后就进入了拥塞避免的算法了
 
+在采用快恢复算法时，**慢开始算法只是在TCP连接建立时和网络出现超时时才使用**
+
+#### 拥塞控制图示
+![](https://img-blog.csdn.net/20140509221048265?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWVjaGFvZGVjaHVudGlhbg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+
+![](https://pic1.zhimg.com/v2-86c12ed3ddb2391c057f7d3598372880_r.jpg)
+
 ### 2.4 拥堵窗口和滑动窗口
 
 滑动窗口（sliding window）是接收方的流量控制。
@@ -257,4 +264,5 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 - [What is CWND and RWND?](https://blog.stackpath.com/glossary-cwnd-and-rwnd/)
 - [TCP快速重传与快速恢复原理分析](https://blog.csdn.net/zhangskd/article/details/7174682)
 - [TCP重点系列之拥塞状态机](https://allen-kevin.github.io/2017/04/19/TCP%E9%87%8D%E7%82%B9%E7%B3%BB%E5%88%97%E4%B9%8B%E6%8B%A5%E5%A1%9E%E7%8A%B6%E6%80%81%E6%9C%BA/)
-
+- [TCP的流量控制和拥塞控制](https://blog.csdn.net/yechaodechuntian/article/details/25429143)
+- [BBR 算法](https://www.zhihu.com/question/53559433)
