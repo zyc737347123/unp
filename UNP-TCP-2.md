@@ -235,6 +235,12 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 - 如果再收到 duplicated Acks，那么cwnd = cwnd +1
 - 如果收到了新的Ack，那么，cwnd = sshthresh ，然后就进入了拥塞避免的算法了
 
+在快速恢复阶段，每收到重复的ACK，则cwnd加1；收到非重复ACK时，置cwnd = ssthresh，
+转入拥塞避免阶段；如果发生超时重传，则置ssthresh为当前cwnd的一半，cwnd = 1，重新进入
+慢启动阶段。
+
+**Reno快速恢复阶段退出条件：收到非重复ACK**
+
 在采用快恢复算法时，**慢开始算法只是在TCP连接建立时和网络出现超时时才使用**
 
 #### 拥塞控制图示
