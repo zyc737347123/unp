@@ -73,3 +73,7 @@ Linux可以使用命令行配置ip，net-tools（即将弃用）和iproute2（�
 如果想续租，就要提前一段时间通知DHCP Server
 
 客户机会在租期过去50%的时候，直接向为其提供IP地址的DHCP Server发送DHCP Request消息包。客户机接受到改服务器回应的DHCP ACK消息包，会根据包中所提供的新租期以及其他已经更新的TCP/IP参数，更新自己的配置。这样IP租用更新就完成了
+
+### 参考文献
+- 极客时间<趣谈网络协议>
+- [解析私有IP地址和公网IP地址](https://www.cnblogs.com/wbxjiayou/p/5150710.html)
