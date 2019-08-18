@@ -13,7 +13,7 @@ TCP 是面向字节流的，但传送的数据单元却是报文段：
 ![](https://coolshell.cn/wp-content/uploads/2014/05/TCP-Header-01.jpg)
 ![](https://s3.notfalse.net/wp-content/uploads/2017/03/12013524/TCP-Header-Format-SEQ.png)
 
-###1.2 TCP报文详解
+### 1.2 TCP报文详解
 
 1. **源端口和目的端口 Port**
 
