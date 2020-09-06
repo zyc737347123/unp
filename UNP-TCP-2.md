@@ -34,6 +34,15 @@ TCP要保证所有的数据包都可以到达，所以，必需要有重传机�
 
 [几种RTT算法](https://coolshell.cn/articles/11609.html)
 
+#### TCP的RTO
+
+```
+SRTT = SRTT + α (RTT – SRTT)  —— 计算平滑RTT
+DevRTT = (1-β)*DevRTT + β*(|RTT-SRTT|) ——计算平滑RTT和真实的差距（加权移动平均）
+RTO= µ * SRTT + ∂ *DevRTT 
+神一样的公式（其中：在Linux下，α = 0.125，β = 0.25， μ = 1，∂ = 4 ——这就是算法中的“调得一手好参数”，nobody knows why, it just works…） 最后的这个算法在被用在今天的TCP协议中并工作非常好
+```
+
 #### 快速重传
 
 因为超时重传可能耗时很久，于是，TCP引入了一种叫**Fast Retransmit** 的算法，**不以时间驱动，而以数据驱动重传**。也就是说，如果，包没有连续到达，就ack最后那个可能被丢了的包，如果发送方连续收到3次相同的ack，就重传。Fast Retransmit的好处是不用等timeout了再重传。
