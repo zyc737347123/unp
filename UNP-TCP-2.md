@@ -39,7 +39,7 @@ TCP要保证所有的数据包都可以到达，所以，必需要有重传机�
 ```
 SRTT = SRTT + α (RTT – SRTT)  —— 计算平滑RTT
 DevRTT = (1-β)*DevRTT + β*(|RTT-SRTT|) ——计算平滑RTT和真实的差距（加权移动平均）
-RTO= µ * SRTT + ∂ *DevRTT 
+RTO = µ * SRTT + ∂ *DevRTT 
 神一样的公式（其中：在Linux下，α = 0.125，β = 0.25， μ = 1，∂ = 4 ——这就是算法中的“调得一手好参数”，nobody knows why, it just works…） 最后的这个算法在被用在今天的TCP协议中并工作非常好
 ```
 
