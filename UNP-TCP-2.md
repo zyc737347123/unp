@@ -208,10 +208,10 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 
 #### 拥塞状态时的算法(拥塞发生)
 
-什么情况是拥塞发生，TCP认为出现丢包,需要重传就代表当前网络拥塞，TCP通过**duplicate acknowledgement**和**timeout**判断是否丢包，下面一段文字概述了拥塞发生时TCP的处理方式
+**什么情况是拥塞发生，TCP认为出现丢包,需要重传就代表当前网络拥塞，TCP通过duplicate acknowledgement和timeout判断是否丢包**，下面一段文字概述了拥塞发生时TCP的处理方式
 [Congestion is detected either by receipt of a duplicate acknowledgement or timeout signal. Once this happens, the TCP sender decreases the send rate by decreasing the congestion window size by a factor determined by the algorithm used. The maximum amount of unacknowledged data that the source can send is the lower of the two windows.](https://blog.stackpath.com/glossary-cwnd-and-rwnd/)
 
-总的来说，当丢包的时候，会有两种情况：
+**总的来说，当丢包的时候，会有两种情况**：
 
 1. 等到RTO超时，重传数据包。TCP认为这种情况太糟糕，反应也很强烈。
 
@@ -232,7 +232,7 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 
 #### 快速恢复算法 – Fast Recovery
 
-这个算法定义在[RFC5681](http://tools.ietf.org/html/rfc5681)。快速重传和快速恢复算法一般同时使用。快速恢复算法是认为，你还有3个Duplicated Acks说明网络也不那么糟糕，所以没有必要像RTO超时那么强烈。 **也就是说，快速恢复是为了完成快速重传后，进入了拥塞避免阶段而不是慢启动阶段**。注意，正如前面所说，进入Fast Recovery之前，cwnd 和 sshthresh已被更新：
+这个算法定义在[RFC5681](http://tools.ietf.org/html/rfc5681)。**快速重传和快速恢复算法一般同时使用**。快速恢复算法是认为，你还有3个Duplicated Acks说明网络也不那么糟糕，所以没有必要像RTO超时那么强烈。 **也就是说，快速恢复是为了完成快速重传后，进入了拥塞避免阶段而不是慢启动阶段**。注意，正如前面所说，进入Fast Recovery之前，cwnd 和 sshthresh已被更新：
 
 - cwnd = cwnd /2
 - sshthresh = cwnd
@@ -245,8 +245,8 @@ setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&value,sizeof(int));
 - 如果收到了新的Ack，那么，cwnd = sshthresh ，然后就进入了拥塞避免的算法了
 
 在快速恢复阶段，每收到重复的ACK，则cwnd加1；收到非重复ACK时，置cwnd = ssthresh，
-转入拥塞避免阶段；如果发生超时重传，则置ssthresh为当前cwnd的一半，cwnd = 1，重新进入
-慢启动阶段。
+转入拥塞避免阶段；**如果发生超时重传，则置ssthresh为当前cwnd的一半，cwnd = 1，重新进入**
+**慢启动阶段**。
 
 **Reno快速恢复阶段退出条件：收到非重复ACK**
 
